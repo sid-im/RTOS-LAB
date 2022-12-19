@@ -1,0 +1,222 @@
+#include <RTL.h>                      /* RTX kernel functions & defines      */
+#include <LPC21xx.h>                  /* LPC21xx definitions                 */
+#include <stdio.h>
+__task void task1 (void) ;
+__task void task2(void);
+int n,m,y;
+unsigned char str[10];
+void init_serial (void);       /* Initialize Serial Interface         */
+int k=0;
+void delay(){
+for(k=0;k<1000;k++);	
+}
+//unsigned char msg1[]="task1\r\n", msg2[]="task2\n";
+unsigned int j,i=0;
+OS_TID tsk1, tsk2;
+OS_SEM semaphore1;
+ unsigned char input1,input2 ;
+unsigned char msg10[]="\nascii is\n",msg11[]="\n-------\n",msg12[]="\n-------\n";;
+unsigned char msg1[]="task1\r\n", msg2[]="\r\nINPUT 2\n", msg3[]="\r\nINPUT 1\n",msg5[]="\r\nPRODUCT\n",msg6[]="\r\n--LETS CONVERT ASCII\n",msg7[]="\r\n---------\n";
+/*----------------------------------------------------------------------------;
+/*----------------------------------------------------------------------------
+ *    Task 1 - High Priority -
+ ---------------------------------------------------------------------------*/
+__task void task1 (void) {
+ 
+OS_RESULT ret;
+os_tsk_prio_self(2);
+tsk2 = os_tsk_create (task2, 0);
+  while (1) {
+
+       ret = os_sem_wait (semaphore1, 6);
+   if (ret == OS_R_SEM)
+{
+
+     OS_RESULT ret;
+os_tsk_prio_self(2);
+tsk2 = os_tsk_create (task2, 0);
+  while (1) {
+ init_serial();
+		init_serial();
+       ret = os_sem_wait (semaphore1, 1);
+   if (ret == OS_R_SEM)
+{
+        while (msg2[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = msg2[i];
+i++;
+ }
+ i=0;
+
+		while(!(U0LSR & 0x01));
+	 
+
+   input1=U0RBR;
+delay();
+		
+ U0THR=input1;
+ 
+ delay();
+         while (msg5[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = msg5[i];
+i++;
+ }
+ i=0;
+
+
+  n=(input1-48);
+  m=(input2-48);
+ y=n*m;
+
+
+sprintf(str,"%d",y);
+ 
+        while (str[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = str[i];
+i++;
+ }
+ i=0;
+
+ 
+         while (msg7[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = msg7[i];
+i++;
+ }
+ i=0;
+
+ 	 	   while (msg6[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = msg6[i];
+i++;
+ }
+   i=0;
+  
+ 
+		while(!(U0LSR & 0x01));
+	 
+
+   input1=U0RBR;
+  U0THR = input1;
+	 
+	 	   while (msg10[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = msg10[i];
+i++;
+ }
+   i=0;
+n=(input1);
+
+sprintf(str,"%d",n);
+	   while (str[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = str[i];
+i++;
+ }
+   i=0;
+
+	   while (msg11[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = msg11[i];
+i++;
+ }
+   i=0;
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ init_serial();
+ 
+ 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+      os_sem_send (semaphore1);
+    }
+  }
+}
+}
+	}
+
+/*----------------------------------------------------------------------------
+ *    Task 2 - Low Priority - looks for a free semaphore and uses the resource
+ *                            whenever it is available
+ ---------------------------------------------------------------------------*/
+__task void task2 (void) {
+ 
+  while (1)
+  {
+
+    /* Wait for a free semaphore */
+   
+    /* OK, the serial interface is free now, use it. */
+   
+   while (msg3[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = msg3[i];
+i++;
+ }
+   i=0;
+ 		while(!(U0LSR & 0x01));
+	 
+
+   input2=U0RBR;
+ U0THR=input2;
+
+ 
+     /* Return a token back to a semaphore. */
+ //j=2;
+    os_sem_send (semaphore1);
+}
+  }
+
+
+/*----------------------------------------------------------------------------
+ *       init_serial:  Initialize Serial Interface
+ ---------------------------------------------------------------------------*/
+void init_serial (void) {
+  PINSEL0 = 0X0000005;                 // Enable RxD0 and TxD1              
+  U0LCR = 0x83;                         // 8 bits, no Parity, 1 Stop bit    
+  U0DLL = 0x61;                           // 9600 Baud Rate @ 15MHz VPB Clock  
+  U0LCR = 0x03;                         // DLAB = 0                          
+}
+
+/*----------------------------------------------------------------------------
+ *    Main: Initialize and start RTX Kernel
+ ---------------------------------------------------------------------------*/
+int main (void)
+{
+  init_serial();
+   
+  /* Initialize the Semaphore before the first use */
+  os_sem_init (semaphore1, 1);
+ 
+  os_sys_init (task1);
+}
+
+/*----------------------------------------------------------------------------
+ * end of file
+ ---------------------------------------------------------------------------*/
