@@ -1,0 +1,119 @@
+
+/*  Send adc value to mailbox and display in LCD  */
+#include <rtl.h>
+//#include<stdio.h>
+#include<lpc214x.h>
+void init_serial(void);
+os_mbx_declare (MsgBox, 100);                /* Declare an RTX mailbox  100 msgs with name MsgBox*/
+       
+_declare_box(mpool,20,32);	 /* Reserve a memory for 32 blocks of 20 bytes  */
+unsigned  int adc_value=0,temp_adc=0;
+int temp,i;
+int var[10];
+char val[10]; 
+ void hascii(int var[]);
+ void delay(int r);
+__task void task2 (void);
+__task void task1 (void)
+{
+  U32 *mptr;
+  os_tsk_create (task2, 0);
+  os_mbx_init (MsgBox, sizeof(MsgBox));
+  mptr = _alloc_box (mpool);                /* Allocate a memory for the message */
+	
+	while(1)
+	{
+		AD0CR = 0x09200010;       				  //command register for ADC-AD0.4
+		while((temp_adc = AD0GDR) == 0x80000000);	//to check the interrupt bit
+		adc_value = AD0GDR;          				//reading the ADC value
+		adc_value >>=6;
+		adc_value &= 0x000003ff;
+ 		temp=adc_value & 0x00000f00;
+		var[0]= temp>>8	;
+		temp=adc_value & 0x000000f0;
+		var[1]= temp>>4;
+		temp=adc_value & 0x0000000f; 
+		var[2]=temp;
+
+	  hascii(var);
+	 
+		mptr[0] = val[0];
+		mptr[1] = val[1];
+		mptr[2] = val[2];
+	 
+		os_mbx_send (MsgBox, mptr, 0xffff);	 /* Send the count value to a 'Mailbox' */
+		os_dly_wait(5);
+
+  }
+}
+  
+__task void task2 (void) 
+{
+  /* This task will receive a count. */
+  U32 *rptr  ;
+ 	 while(1)
+	 { 
+		 os_mbx_wait (MsgBox, (void**)&rptr, 0xffff);      /* Wait for the message to arrive. */
+     val[0] = rptr[0];	    /* copy the count value from task1 to cnt2  */
+		 val[1] = rptr[1];
+		 val[2] = rptr[2];
+
+	
+  			
+	  		while (!(U0LSR & 0x20));
+	  		U0THR = val[0];
+				while (!(U0LSR & 0x20));
+	  		U0THR = val[1];
+				while (!(U0LSR & 0x20));
+	  		U0THR = val[2];
+				while (!(U0LSR & 0x20));
+				U0THR = '\n'; 
+				delay(300000);
+				delay(300000);
+		 delay(3000000);delay(3000000);
+
+
+			os_dly_wait(5);
+	 }
+}
+
+
+int main (void) 
+{
+	PINSEL1  = 0X00040000;       //AD0.4 pin is selected(P0.18)
+  //IO0DIR   = 0x000000FC;
+	init_serial ();
+  _init_box (mpool, sizeof(mpool), sizeof(U32));
+  os_sys_init(task1);
+}
+
+ /*----------------------------------------------------------------------------
+ *       init_serial:  Initialize Serial Interface
+ *---------------------------------------------------------------------------*/
+void init_serial (void) 
+{
+  PINSEL0 = 0X0000005;                 // Enable RxD0 and TxD0              
+  U0LCR = 0x83;                         // 8 bits, no Parity, 1 Stop bit     
+  U0DLL = 0x61;                           // 9600 Baud Rate @ 15MHz VPB Clock  
+  U0LCR = 0x03;                         // DLAB = 0                          
+}
+void hascii(int var[])
+ {
+ char asc[20]={'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+ 
+ for (i=0;i<3;i++)
+ val[i]=asc[var[i]];
+ }
+
+void delay(int r)
+{
+	for (i=0;i<r;i++);
+}
+
+
+
+
+
+
+
+
