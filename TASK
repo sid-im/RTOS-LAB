@@ -1,1 +1,82 @@
 
+#include <rtl.h>
+#include <lpc21xx.h>
+
+OS_TID tsk1,tsk2,tsk3;    	
+int    cnt1,cnt2,cnt3,i;	
+__task void job1 (void); 		
+__task void job2 (void); 	
+__task void job3 (void);		
+
+void delay(){
+	
+	for(i=0;i<1000000;i++);
+	
+}
+__task void job1 (void)		
+ {
+	 
+ os_tsk_prio_self (5);
+  tsk1=os_tsk_create(job2,2);
+   while (1)
+   {
+IOCLR0=0x00010000;
+delay();
+IOSET0=0x00010000;
+delay();
+    cnt1++;	
+delay();
+cnt1++;		 
+       os_tsk_prio(tsk1,6);	
+
+	}
+ 
+    }
+
+
+__task void job2 (void)		
+ {
+	 	 os_tsk_prio_self (6);
+  tsk3=os_tsk_create(job3,3);
+  while (1)
+   {
+IOCLR0=0x00020000;
+delay();
+IOSET0=0x00020000;
+delay();
+          cnt2++;
+		 delay();
+		 cnt2++;
+    os_tsk_prio(tsk3,7);			 
+     }
+
+  }
+
+	
+	__task void job3 (void)		
+ {
+	  
+  while (1)
+   {
+		 
+		      IOCLR0=0x00040000;
+delay();
+IOSET0=0x00040000;
+delay();
+          cnt3++;
+		 delay();
+		 cnt3++;
+   os_tsk_prio(tsk1,1);
+    os_tsk_prio(tsk2,1);		 
+     }
+
+  }
+
+int main (void) 
+{PINSEL0=0x00FF0000;
+IODIR0=0x00FF0000;
+IOSET0=0x00FF0000;
+
+  os_sys_init (job1);	
+  while (1);
+}
