@@ -1,1 +1,74 @@
 
+#include <rtl.h>
+#include <lpc21xx.h>
+#include <stdio.h>
+unsigned char msg1[]="TASK 1 IS SCHEDULED",msg2[]="TASK 2 IS SCHEDULED";
+int i;
+OS_TID tsk1,tsk2;    
+void init_serial (void) 
+{
+  PINSEL0 = 0X0000005;                 // Enable RxD0 and TxD0              
+  U0LCR = 0x83;                         // 8 bits, no Parity, 1 Stop bit     
+  U0DLL = 0x61;                           // 9600 Baud Rate @ 15MHz VPB Clock  
+  U0LCR = 0x03;                         // DLAB = 0                          
+}
+
+__task void job1 (void); 		
+__task void job2 (void); 
+
+void delay(void)
+{ unsigned long int j;
+for(j=0;j<650000;j++);
+}
+
+__task void job1 (void)		// job1 function definition
+{	
+	 tsk1=os_tsk_self	();
+	 os_tsk_prio_self (1);		// assign priority to job1 as 2
+   tsk2= os_tsk_create (job2, 0);		//create job2
+   while (1)
+   {
+   
+   	os_evt_wait_and(0x0001,0x0001);
+	   //cnt1=0;
+	 				init_serial (); 
+					   while (msg1[i]!='\0'){
+  while (!(U0LSR & 0x20));
+  U0THR = msg1[i];
+i++;
+ }
+   i=0;
+    os_dly_wait(10);
+		os_evt_set (0x0002, tsk2);
+
+   }
+}
+
+__task void job2 (void)		// job2 function definition
+ {
+  while (1)
+   {
+   	  os_evt_wait_and (0x0002, 0x0001);		// wait for event 
+
+						init_serial (); 
+					   while (msg2[i] != '\0')
+ {
+  while (!(U0LSR & 0x20));
+  U0THR = msg2[i];
+i++;
+ }
+   i=0;
+		os_dly_wait(10);
+	  os_evt_set (0x0001, tsk1);		//clear counter	and set event flag to start job1	
+   }
+}
+
+
+
+
+int main (void) 
+{
+	
+  os_sys_init (job1);		//initialize job1 
+  while (1);
+}
